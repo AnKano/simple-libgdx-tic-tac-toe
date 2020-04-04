@@ -1,5 +1,5 @@
 package io.ash.simpletoe;
 
-public class Constants {
-    public static final String SERVER_URI = "http://192.168.0.49:8080";
+class Constants {
+    static final String SERVER_URI = "http://192.168.0.49:8080"; // Real server URI for Socket.io adapter
 }

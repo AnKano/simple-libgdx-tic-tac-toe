@@ -4,7 +4,6 @@
     package="io.ash.simpletoe">
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.INTERNET" />
-
     <application
         android:name=".AppContext"
         android:allowBackup="false"
@@ -13,6 +12,12 @@
         android:theme="@style/AppTheme.NoActionBar"
         android:usesCleartextTraffic="true"
         android:screenOrientation="portrait">
+        <uses-library android:name="android.test.runner"
+            android:required="false" />
+        <uses-library android:name="android.test.base"
+            android:required="false" />
+        <uses-library android:name="android.test.mock"
+            android:required="false" />
         <activity
             android:name=".ui.MenuActivity"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout"

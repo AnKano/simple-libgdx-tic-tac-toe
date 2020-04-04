@@ -9,16 +9,16 @@ import io.ash.simpletoe.ConfigurationStash;
 import io.ash.simpletoe.screens.generic.DynamicScreen;
 
 public class EmptyScreen extends DynamicScreen {
-    private final int FONT_SIZE = 16;
-    private final int BORDER_WIDTH = 2;
 
     public EmptyScreen() {
         // pre-init baked font for another screens. anyway, that's screen useless
         FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("font.ttf"));
         FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+
+        int FONT_SIZE = 16;
         parameter.size = Math.round(FONT_SIZE * Gdx.graphics.getDensity());
         parameter.borderColor = Color.GRAY;
-        parameter.borderWidth = BORDER_WIDTH;
+        parameter.borderWidth = 2;
         ConfigurationStash.bakedFont = generator.generateFont(parameter);
         generator.dispose();
     }

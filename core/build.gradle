@@ -4,9 +4,28 @@ apply plugin: "java"
 sourceCompatibility = 1.8
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
-sourceSets.main.java.srcDirs = [ "src/" ]
+sourceSets {
+    main {
+        java.srcDirs = ['src']
+    }
 
+//    assets {
+//        java.srcDirs = ['assets']
+//    }
+
+    test {
+        java.srcDirs = ['test']
+    }
+
+//    resources {
+//        java.srcDirs = [ 'assets' ]
+//    }
+}
+
+repositories {
+    mavenCentral()
+}
 
 dependencies {
-    implementation ('io.socket:socket.io-client:1.0.0')
+    implementation('io.socket:socket.io-client:1.0.0')
 }

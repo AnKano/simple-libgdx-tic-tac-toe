@@ -25,37 +25,41 @@ public class Grid {
 
         int[][] temp = new int[this.rows][this.colums];
 
-        for (int row = 0; row < this.rows; row++) {
+        // parse inputted board state
+        for (int row = 0; row < this.rows; row++)
             try {
                 JSONArray rec = fields.getJSONArray(row);
-                for (int col = 0; col < this.colums; col++) {
-                    temp[row][col] = rec.getInt(col);
-                }
+                for (int col = 0; col < this.colums; col++)
+                    temp[col][row] = rec.getInt(col);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-        }
 
         this.state = new Cell[rows][colums];
 
+        // decipher board values into correct instances (symb. numbers like symb. number on server)
         for (int row = 0; row < this.rows; row++)
-            for (int col = 0; col < this.colums; col++) {
+            for (int col = 0; col < this.colums; col++)
                 switch (temp[row][col]) {
-                    case 2:
-                        this.state[row][col] = new EmptyCell(row, col); break;
                     case 0:
-                        this.state[row][col] = new CrossCell(row, col); break;
+                        this.state[row][col] = new CrossCell(row, col);
+                        break;
                     case 1:
-                        this.state[row][col] = new NougthCell(row, col); break;
-                    default: return;
+                        this.state[row][col] = new NougthCell(row, col);
+                        break;
+                    case 2:
+                        this.state[row][col] = new EmptyCell(row, col);
+                        break;
+                    default:
+                        return;
                 }
-            }
 
-        ConfigurationStash.socket.on("moveIsCorrect", args -> {
+        // if move correct update board actors
+        ConfigurationStash.network.on("moveIsCorrect", args -> {
             JSONObject messageJson = (JSONObject) args[0];
 
             int row_index = 0, column_index = 0;
-            io.ash.simpletoe.enums.Figures result = io.ash.simpletoe.enums.Figures.NONE;
+            Figures result = Figures.EMPTY;
             try {
                 row_index = messageJson.getJSONObject("point").getInt("Y");
                 column_index = messageJson.getJSONObject("point").getInt("X");
@@ -73,12 +77,11 @@ public class Grid {
             int finalRow_index = row_index;
             int finalColumn_index = column_index;
 
-            io.ash.simpletoe.enums.Figures finalResult = result;
+            Figures finalResult = result;
             Gdx.app.postRunnable(() -> {
                 Cell cell = (finalResult == Figures.NOUGHT)
                         ? new NougthCell(finalRow_index, finalColumn_index)
                         : new CrossCell(finalRow_index, finalColumn_index);
-                cell.setClicked();
                 this.state[finalRow_index][finalColumn_index] = cell;
                 current.addActor(cell);
             });

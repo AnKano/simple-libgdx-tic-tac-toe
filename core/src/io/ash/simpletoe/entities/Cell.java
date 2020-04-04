@@ -12,8 +12,7 @@ import org.json.JSONObject;
 import io.ash.simpletoe.ConfigurationStash;
 import io.ash.simpletoe.enums.GameState;
 
-abstract class Cell extends Actor {
-    private boolean clicked = false;
+public abstract class Cell extends Actor {
     private int row_index, column_index;
     private float actorX = 0.0f, actorY = 0.0f;
 
@@ -23,6 +22,7 @@ abstract class Cell extends Actor {
 
         setTouchable(Touchable.enabled);
 
+        // each one cell use it for creating emit with "makeMove state"
         addListener(new ActorGestureListener() {
             @Override
             public void tap(InputEvent event, float x, float y, int count, int button) {
@@ -40,7 +40,7 @@ abstract class Cell extends Actor {
                         e.printStackTrace();
                     }
 
-                    ConfigurationStash.socket.emit("makeMove", object);
+                    ConfigurationStash.network.emit("makeMove", object);
                 }
             }
         });
@@ -56,14 +56,6 @@ abstract class Cell extends Actor {
                 sprite.getWidth(),
                 sprite.getHeight()
         );
-    }
-
-    boolean isClicked() {
-        return clicked;
-    }
-
-    void setClicked() {
-        this.clicked = true;
     }
 
     private void setActorX(float actorX) {

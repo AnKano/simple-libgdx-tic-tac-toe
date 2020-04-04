@@ -1,10 +1,12 @@
 package io.ash.simpletoe.ui.SettingsFragment;
 
-import android.arch.lifecycle.LiveData;
-import android.arch.lifecycle.MutableLiveData;
-import android.arch.lifecycle.ViewModel;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.ViewModel;
 
+// ViewModel necessary for operative updating all settings that's using in our fragment
 public class SettingsViewModel extends ViewModel {
+    // editable LiveData fields
     private MutableLiveData<String> mId;
     private MutableLiveData<String> mName;
 

@@ -1,17 +1,10 @@
 package io.ash.simpletoe.ui.LobbyFragment;
 
 import android.app.AlertDialog;
-import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.design.widget.FloatingActionButton;
-import android.support.v4.app.Fragment;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,17 +12,26 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Objects;
 
-import io.ash.simpletoe.AppContext;
 import io.ash.simpletoe.R;
 import io.ash.simpletoe.ui.GameActivity;
 import io.ash.simpletoe.ui.LobbyFragment.LobbyList.Lobby;
 import io.ash.simpletoe.ui.LobbyFragment.LobbyList.LobbyRecyclerAdapter;
+import io.ash.simpletoe.ui.MenuActivity;
 import io.socket.client.Ack;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
@@ -42,43 +44,48 @@ public class LobbyFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        AppContext app = (AppContext) Objects.requireNonNull(getActivity()).getApplication();
-        this.mSocket = app.getSocket();
-        this.pref = getActivity().getSharedPreferences("Configuration", Context.MODE_PRIVATE);
-
-        this.mSocket.on("lobbyCreated", onLobbyCreated);
-        this.mSocket.on("lobbyIsNotCreated", onLobbyCreatingFailure);
+        this.mSocket = ((MenuActivity) Objects.requireNonNull(getActivity())).getSocket();
+        // Subscribe on lobby list changes
         this.mSocket.on("lobbiesUpdated", onUpdate);
+        this.pref = getActivity().getSharedPreferences("Configuration", Context.MODE_PRIVATE);
+    }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        // On fragment resume trying to get new lobbies list
         this.mSocket.emit("getLobbies", onLobbiesRequested);
     }
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_lobbies, container, false);
 
-        lobbyViewModel = ViewModelProviders.of(this).get(LobbyViewModel.class);
+        // Make View Model provider
+        lobbyViewModel = new ViewModelProvider(this).get(LobbyViewModel.class);
 
         RecyclerView recycler = root.findViewById(R.id.lobby_list);
         recycler.setLayoutManager(new LinearLayoutManager(getActivity()));
 
+        // Set on lobby list click listener
         LobbyRecyclerAdapter.RecyclerViewClickListener listener = (view, position) -> {
             Lobby lobby = Objects.requireNonNull(lobbyViewModel.getList().getValue()).get(position);
-            if (lobby.isLocked())
-                execPasswordDialog(lobby, inflater);
-            else
-                execGameActivity(lobby.getId(), null);
+            // If there's password create dialog
+            if (lobby.isLocked()) execPasswordDialog(lobby);
+            // If it is not open game activity
+            else execGameActivity(lobby.getId(), "");
         };
 
-        lobbyViewModel.getList().observe(this, s -> {
-            LobbyRecyclerAdapter adapter = new LobbyRecyclerAdapter(s, listener);
+        // on any changes in view model update list adapter
+        lobbyViewModel.getList().observe(getViewLifecycleOwner(), s -> {
+            LobbyRecyclerAdapter adapter = new LobbyRecyclerAdapter(getContext(), s, listener);
             recycler.setAdapter(adapter);
         });
 
-        FloatingActionButton addButton = root.findViewById(R.id.addbutton);
+        FloatingActionButton addButton = root.findViewById(R.id.addbutton); // Get button on the fragment corner
         addButton.setOnClickListener(v -> {
+            // onClick create dialog with lobby settings
             final AlertDialog dialogBuilder = new AlertDialog.Builder(getActivity()).create();
-            View dialogView = inflater.inflate(R.layout.lobby_dialog, null);
+            View dialogView = View.inflate(getContext(), R.layout.lobby_dialog, null);
 
             Button submit = dialogView.findViewById(R.id.submitButton);
             Button discard = dialogView.findViewById(R.id.discardButton);
@@ -86,16 +93,34 @@ public class LobbyFragment extends Fragment {
             EditText nameField = dialogView.findViewById(R.id.nameField);
             EditText passwordField = dialogView.findViewById(R.id.passwordField);
 
+            // dispose our dialog on Close button
             discard.setOnClickListener(view -> dialogBuilder.dismiss());
             submit.setOnClickListener(view -> {
                 JSONObject object = new JSONObject();
                 try {
-                    object.put("name", nameField.getText());
-                    object.put("password", passwordField.getText());
+                    // parse all inputed data and data stored in the preferences
+                    object.put("name", nameField.getText().toString());
+                    object.put("password", passwordField.getText().toString());
                     object.put("makerID", pref.getString("uid", ""));
                     object.put("makerName", pref.getString("name", ""));
-                    mSocket.emit("createLobby", object, onLobbyCreated);
-                } catch (JSONException e) { e.printStackTrace(); }
+
+                    // Subscribe on lobby created
+                    mSocket.on("lobbyCreated", args -> {
+                        JSONObject messageJson = (JSONObject) args[0];
+                        try {
+                            execGameActivity(messageJson.getInt("id"), passwordField.getText().toString());
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    });
+                    // Subscribe on lobby creating failure
+                    mSocket.on("lobbyIsNotCreated", onLobbyCreatingFailure);
+                    // create package with creation request + data
+                    mSocket.emit("createLobby", object);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                // dispose our dialog after all actions
                 dialogBuilder.dismiss();
             });
 
@@ -106,25 +131,20 @@ public class LobbyFragment extends Fragment {
         return root;
     }
 
-    private void execPasswordDialog(Lobby lobby, LayoutInflater inflater) {
+    private void execPasswordDialog(Lobby lobby) {
         final AlertDialog dialogBuilder = new AlertDialog.Builder(getActivity()).create();
-        View dialogView = inflater.inflate(R.layout.password_dialog, null);
+        View dialogView = View.inflate(getContext(), R.layout.password_dialog, null);
 
         Button submit = dialogView.findViewById(R.id.submitButton_req);
         Button discard = dialogView.findViewById(R.id.discardButton_req);
 
         EditText passwordField = dialogView.findViewById(R.id.request_password);
 
-        discard.setOnClickListener(view_int -> dialogBuilder.dismiss());
-        submit.setOnClickListener(view_int -> {
-            String password = passwordField.getText().toString();
-
-            JSONObject obj = new JSONObject();
-            try {
-                obj.put("lobbyID", String.valueOf(lobby.getId()));
-                obj.put("password", password);
-                mSocket.emit("checkPassword", obj, (Ack) args -> { execGameActivity(lobby.getId(), password); });
-            } catch (JSONException e) { e.printStackTrace(); }
+        // dispose our dialog on Close button
+        discard.setOnClickListener(view -> dialogBuilder.dismiss());
+        submit.setOnClickListener(view -> {
+            execGameActivity(lobby.getId(), passwordField.getText().toString());
+            // dispose our dialog after all actions
             dialogBuilder.dismiss();
         });
 
@@ -133,48 +153,42 @@ public class LobbyFragment extends Fragment {
     }
 
     private void execGameActivity(int id, String password) {
+        // Create new intent to out game activity class
         Intent mIntent = new Intent(getActivity(), GameActivity.class);
-        mIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        mIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        mIntent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+        // Clear up activities stack except first activity and "set no animation"
+        mIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+        // pass lobby id and password data to intent
         mIntent.putExtra("LOBBY_ID_EXTRA", String.valueOf(id));
         mIntent.putExtra("PASSWORD_EXTRA", (password != null) ? password : "");
         startActivity(mIntent);
     }
 
-    Ack onLobbiesRequested = args -> {
+    private void proceedLobbies(Object[] args) {
         JSONArray messageJson = (JSONArray) args[0];
         if (messageJson != null) {
-            Objects.requireNonNull(getActivity()).runOnUiThread(() -> {
-                Objects.requireNonNull(lobbyViewModel.getList().getValue()).clear();
-                for (int i = 0; i < messageJson.length(); i++) {
-                    try {
-                        JSONObject object = messageJson.getJSONObject(i);
-                        lobbyViewModel.addItem(new Lobby(
-                                object.getInt("id"),
-                                object.getString("name"),
-                                object.getBoolean("hasPassword")
-                        ));
-                    } catch (JSONException e) { e.printStackTrace(); }
+            lobbyViewModel.clearList();
+            for (int i = 0; i < messageJson.length(); i++) {
+                try {
+                    // parse lobbies list
+                    JSONObject object = messageJson.getJSONObject(i);
+                    lobbyViewModel.addItem(new Lobby(
+                            object.getInt("id"),
+                            object.getString("name"),
+                            object.getBoolean("hasPassword")
+                    ));
+                } catch (JSONException e) {
+                    e.printStackTrace();
                 }
-            });
+            }
         }
-    };
+    }
 
-    Emitter.Listener onUpdate = args -> {
-        this.mSocket.emit("getLobbies", onLobbiesRequested);
-    };
-
-    Emitter.Listener onLobbyCreatingFailure = args -> {
+    private Ack onLobbiesRequested = this::proceedLobbies;
+    private Emitter.Listener onUpdate = this::proceedLobbies;
+    private Emitter.Listener onLobbyCreatingFailure = args -> {
+        // Create toast with lobby failure
         Objects.requireNonNull(getActivity()).runOnUiThread(() -> {
             Toast.makeText(getContext(), "Lobby creation failure", Toast.LENGTH_LONG).show();
         });
-    };
-
-    Emitter.Listener onLobbyCreated = args -> {
-        JSONObject messageJson = (JSONObject) args[0];
-        try {
-            execGameActivity(messageJson.getInt("id"), null);
-        } catch (JSONException e) { e.printStackTrace(); }
     };
 }

@@ -12,6 +12,11 @@ public class DynamicScreen implements Screen {
     private float elapsedClearColorChangeTime;
     private float clearChangeDuration;
 
+    /**
+     * set target color
+     * @param colorHex hex num of target color
+     * @param duration duration in secs on color transition
+     */
     public void changeClearColor(int colorHex, float duration){
         targetClearColor.set(colorHex);
         startingClearColor.set(clearColor);
@@ -19,6 +24,10 @@ public class DynamicScreen implements Screen {
         clearChangeDuration = duration;
     }
 
+    /**
+     * just update the color
+     * @param delta current libgdx deltatime
+     */
     protected void updateClearColor(float delta){
         if (elapsedClearColorChangeTime < clearChangeDuration){
             elapsedClearColorChangeTime = Math.min(elapsedClearColorChangeTime + delta, clearChangeDuration);
@@ -26,6 +35,11 @@ public class DynamicScreen implements Screen {
         }
         Gdx.gl.glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
     }
+
+    public Color getClearColor() {
+        return clearColor;
+    }
+
 
     @Override
     public void show() {

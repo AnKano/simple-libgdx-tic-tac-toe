@@ -19,6 +19,9 @@ public class AppContext extends Application {
         }
     }
 
+    /**
+     * @return inited socket
+     */
     public Socket getSocket() {
         return mSocket;
     }

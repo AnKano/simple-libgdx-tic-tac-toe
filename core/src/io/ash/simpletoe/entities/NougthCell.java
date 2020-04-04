@@ -5,10 +5,13 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 
+import io.ash.simpletoe.ConfigurationStash;
+import io.ash.simpletoe.enums.Figures;
+
 public class NougthCell extends Cell {
     private Sprite sprite;
 
-    NougthCell(int row, int column) {
+    public NougthCell(int row, int column) {
         super(row, column);
 
         this.sprite = new Sprite(new Texture("circle.png"));
@@ -22,8 +25,9 @@ public class NougthCell extends Cell {
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
-        batch.setColor(Color.WHITE);
-        if (this.isClicked())
+        if (ConfigurationStash.figure == Figures.NOUGHT)
+            batch.setColor(Color.GREEN);
+        else
             batch.setColor(Color.RED);
         batch.draw(this.sprite, this.getActorX(), this.getActorY());
     }

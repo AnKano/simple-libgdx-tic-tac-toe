@@ -10,15 +10,15 @@ import io.ash.simpletoe.enums.GameState;
 import io.socket.client.Socket;
 
 public class ConfigurationStash {
-    public static Socket socket;
+    public static Socket network;
     public static String uId;
     public static String name;
     public static String lobbyId;
     public static String password;
     public static String winner;
 
-    public static Figures symbol = Figures.NONE; // player symbol
-    public static Figures currentTurn = Figures.NONE; // current turn for this symbol
+    public static Figures figure = Figures.EMPTY; // player symbol
+    public static Figures currentTurn = Figures.EMPTY; // current turn for this symbol
 
     public static GameState gameState = null;
 
@@ -27,7 +27,7 @@ public class ConfigurationStash {
     public static BitmapFont bakedFont;
 
     ConfigurationStash(String lobbyId, String uId, String name, Socket socket, String password) {
-        ConfigurationStash.socket = socket;
+        ConfigurationStash.network = socket;
         ConfigurationStash.uId = (uId != null) ? uId : "";
         ConfigurationStash.name = (name != null) ? name : "";
         ConfigurationStash.lobbyId = (lobbyId != null) ? lobbyId : "";
@@ -38,6 +38,7 @@ public class ConfigurationStash {
     public static JSONObject createDataBundle() {
         JSONObject object = new JSONObject();
         try {
+            // collect all useful on back end info
             object.put("lobbyID", ConfigurationStash.lobbyId);
             object.put("password", ConfigurationStash.password);
             object.put("clientID", ConfigurationStash.uId);
@@ -49,8 +50,12 @@ public class ConfigurationStash {
     }
 
     public static Figures setCurentTurnFromInt(int symbol) {
-        if (symbol == 0) return Figures.CROSS;
-        else return Figures.NOUGHT;
+        switch (symbol) {
+            case 0: return Figures.CROSS;
+            case 1: return Figures.NOUGHT;
+            case 2: return Figures.EMPTY;
+        }
+        return Figures.EMPTY;
     }
 
     public static GameState setGameState(int state) {
@@ -63,29 +68,40 @@ public class ConfigurationStash {
         return gameState;
     }
 
-    static void setSymbol(String idX, String idO) {
+    static void setFigure(String idX, String idO) {
         if (idX.equals(ConfigurationStash.uId))
-            ConfigurationStash.symbol = Figures.CROSS;
+            ConfigurationStash.figure = Figures.CROSS;
         else if (idO.equals(ConfigurationStash.uId))
-            ConfigurationStash.symbol = Figures.NOUGHT;
+            ConfigurationStash.figure = Figures.NOUGHT;
     }
 
     public static boolean isYourTurn() {
-        return ConfigurationStash.currentTurn == ConfigurationStash.symbol;
+        return ConfigurationStash.currentTurn == ConfigurationStash.figure;
     }
 
     public static void resetStash() {
-        socket = null;
         uId = null;
         name = null;
         lobbyId = null;
         password = null;
         winner = null;
 
-        symbol = Figures.NONE; // player symbol
-        currentTurn = Figures.NONE; // current turn for this symbol
+        figure = Figures.EMPTY; // player symbol
+        currentTurn = Figures.EMPTY; // current turn for this symbol
 
         readyPreScreenState = false;
         gameState = null;
+
+        ConfigurationStash.network.off("successJoin");
+        ConfigurationStash.network.off("failureJoin");
+        ConfigurationStash.network.off("moveIsCorrect");
+
+        ConfigurationStash.network.off("gameEnded");
+
+        ConfigurationStash.network.off("lobbyPaused");
+        ConfigurationStash.network.off("lobbyResumed");
+        ConfigurationStash.network.off("lobbyDeleted");
+
+        network = null;
     }
 }

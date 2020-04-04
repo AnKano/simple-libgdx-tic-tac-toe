@@ -1,9 +1,11 @@
 package io.ash.simpletoe.ui.LobbyFragment.LobbyList;
 
+import android.content.Context;
 import android.content.res.Resources;
-import android.support.annotation.NonNull;
-import android.support.v7.widget.CardView;
-import android.support.v7.widget.RecyclerView;
+import androidx.annotation.NonNull;
+import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,12 +17,14 @@ import java.util.List;
 import io.ash.simpletoe.R;
 
 public class LobbyRecyclerAdapter extends RecyclerView.Adapter<LobbyRecyclerAdapter.LobbyHolder> {
+    private final Context context;
     private List<Lobby> lobbies;
     private RecyclerViewClickListener mListener;
 
-    public LobbyRecyclerAdapter(List<Lobby> lobbies, RecyclerViewClickListener listener) {
+    public LobbyRecyclerAdapter(Context context, List<Lobby> lobbies, RecyclerViewClickListener listener) {
         this.lobbies = lobbies;
         this.mListener = listener;
+        this.context = context;
     }
 
     @NonNull
@@ -40,15 +44,15 @@ public class LobbyRecyclerAdapter extends RecyclerView.Adapter<LobbyRecyclerAdap
 
 
         if (temporary.isLocked())
-            lobbyHolder.cv.setCardBackgroundColor(res.getColor(R.color.colorNotAllowed_custom));
+            lobbyHolder.cv.setCardBackgroundColor(ContextCompat.getColor(context, R.color.colorNotAllowed_custom));
         else
-            lobbyHolder.cv.setCardBackgroundColor(res.getColor(R.color.colorPrimary_custom));
+            lobbyHolder.cv.setCardBackgroundColor(ContextCompat.getColor(context, R.color.colorPrimary_custom));
 
         if (temporary.isLocked())
-            lobbyHolder.lobbyText.setText("Enter the password");
+            lobbyHolder.lobbyText.setText(R.string.Password_needed);
         else {
             lobbyHolder.lobbyState.setVisibility(View.GONE);
-            lobbyHolder.lobbyText.setText("Enter to lobby");
+            lobbyHolder.lobbyText.setText(R.string.Enter_To_Lobby);
         }
     }
 
