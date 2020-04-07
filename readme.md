@@ -9,7 +9,7 @@ Without a server, it will be stuck in the lobby activity. For starting this shit
 ```sh
 $ node index.js
 ```
-... and changing IP-address in io/ash/simpletoe/Constansts.java
+... and change IP-address in io/ash/simpletoe/Constansts.java
 ```
 class Constants {
     static final String SERVER_URI = "http://localhost:8080";
